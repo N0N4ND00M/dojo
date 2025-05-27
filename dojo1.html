@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8"> <!-- Teckenuppsättning: anger teckenuppsättningen för sidan -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Gör sidan responsiv på olika skärmstorlekar -->
+  <title>Dojo Träningsplan</title> <!-- Dokumentets titel som visas i flik eller fönster -->
+  <style>
+    /* ======== Variabler för tema & färger ======== */
+    :root {
+      --color-bg-light: #f5f5f5;    /* Ljus bakgrundsfärg */
+      --color-bg-dark: #121212;     /* Mörk bakgrundsfärg */
+      --color-card-light: #ffffff;  /* Kort bakgrund ljus */
+      --color-card-dark: #1e1e1e;   /* Kort bakgrund mörk */
+      --color-primary: #E60073;     /* Primär accentfärg */
+      --color-text-light: #333333;  /* Textfärg ljus tema */
+      --color-text-dark: #cccccc;   /* Textfärg mörk tema */
+      --radius: 0.75rem;            /* Standard rundade hörn */
+      --transition: 0.3s;           /* Standard transitionstid */
+    }
+    /* Temamappning: sätter variabler beroende på valt tema */
+    [data-theme="light"] {
+      --color-bg: var(--color-bg-light);
+      --color-card: var(--color-card-light);
+      --color-text: var(--color-text-light);
+    }
+    [data-theme="dark"] {
+      --color-bg: var(--color-bg-dark);
+      --color-card: var(--color-card-dark);
+      --color-text: var(--color-text-dark);
+    }
+
+    /* ======== Grundläggande reset ======== */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', sans-serif;       /* Typsnitt */
+      background: var(--color-bg);                /* Bakgrundsfärg från tema */
+      color: var(--color-text);                   /* Textfärg från tema */
+      height: 100vh;
+      display: grid;
+      place-items: center;                        /* Centrerar container */
+      transition: background var(--transition), color var(--transition);
+    }
+    /* ======== Container och layout ======== */
+    .container {
+      max-width: 960px;
+      width: 100%;
+      background: var(--color-card);
+      border-radius: var(--radius);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .header {
+      padding: 1rem 1.5rem;
+      background: var(--color-primary);
+      color: #fff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .header button {
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    /* ======== Inloggningssektion (Auth) ======== */
+    .auth {
+      padding: 2rem;
+    }
+    .auth form {
+      display: flex;
+      flex-direction: column;
+    }
+    .auth input, .auth button {
+      padding: 0.75rem;
+      margin-bottom: 1rem;
+      border-radius: var(--radius);
+      border: 1px solid #ccc;
+    }
+    .auth button {
+      background: var(--color-primary);
+      color: #fff;
+      border: none;
+      cursor: pointer;
+    }
+
+    /* ======== Huvudapplikation (göms före login) ======== */
+    .main {
+      display: none; /* Dölj huvudapp tills inlogg */
+      flex: 1;
+      grid-template-columns: 1fr 4fr 1fr /* Tre kolumner */
+      display: grid;
+      grid-gap: 1px;
+      background: var(--color-bg);
+    }
+    .col {
+      background: var(--color-bg);
+      padding: 1rem;
+      overflow-y: auto;
+    }
+    h2 { margin-bottom: 0.75rem; }
+
+    /* ======== Kort & panel för övningar ======== */
+    .item {
+      background: var(--color-card);
+      border-radius: var(--radius);
+      margin-bottom: 1rem;
+      cursor: pointer;
+      overflow: hidden;
+      transition: transform var(--transition);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .item:hover { transform: translateY(-4px); }
+    .title {
+      padding: 0.75rem 1rem;
+      font-weight: bold;
+    }
+    .panel {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height var(--transition), padding var(--transition);
+      padding: 0 1rem;
+      border-top: 1px solid #ddd;
+    }
+    /* Öppnar panelen vid .open */
+    .item.open .panel {
+      max-height: 400px;
+      padding: 0.75rem 1rem;
+    }
+    .ex-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px,1fr));
+      gap: 0.5rem;
+    }
+    .ex-card {
+      background: var(--color-bg);
+      padding: 0.5rem;
+      border-radius: 0.5rem;
+      text-align: center;
+      font-size: 0.85rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    }
+
+    /* ======== Höger panel (nivå & dagens övningar) ======== */
+    #rightList section { margin-bottom: 1rem; }
+    #markBtn {
+      display: block;
+      width: 100%;
+      padding: 0.75rem;
+      background: var(--color-primary);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-size: 1rem;
+    }
+
+    /* ======== Anpassad skalning för dagarnas nät ======== */
+    #daysList {
+      display: grid; /* Grid-layou t */
+      grid-template-columns: repeat(6, 1fr); /* 6 kolumner */
+      gap: 0.75rem;
+      padding: 0.5rem;
+    }
+    #daysList .item {
+      background: var(--color-card);
+      border: 1px solid #ddd;
+      border-radius: var(--radius);
+      transition: background var(--transition), transform var(--transition);
+    }
+    #daysList .item:hover {
+      background: var(--color-primary);
+      color: #fff;
+      transform: translateY(-2px);
+    }
+    #daysList .title {
+      padding: 0.5rem;
+      font-size: 0.9rem;
+      text-align: center;
+    }
+    #daysList .item { margin: 0.25rem; }
+
+  </style>
+</head>
+<body data-theme="light">
+  <!-- Huvudcontainer för app -->
+  <div class="container">
+    <!-- Header: titel, temaväxlare, logout-knapp -->
+    <div class="header">
+      <div>Dojo Träningsplan</div>
+      <div>
+        <button id="themeToggle">🌙</button> <!-- Byter mellan ljust/mörkt tema -->
+        <button id="logoutBtn" style="display:none;">Logga ut</button> <!-- Dölj inloggad -->
+      </div>
+    </div>
+
+    <!-- Inloggningssektion -->
+    <div class="auth" id="authSection">
+      <h2>Logga in / Registrera</h2>
+      <form id="authForm">
+        <input type="email" id="email" placeholder="E-post" required> <!-- Användarens e-post -->
+        <input type="password" id="password" placeholder="Lösenord" required> <!-- Lösenord -->
+        <button id="authBtn">Logga in / Registrera</button> <!-- skickar formulär -->
+      </form>
+    </div>
+
+    <!-- Huvudapplikation: visas efter login -->
+    <div class="main" id="app">
+      <!-- Kolumn: kroppsdelslista -->
+      <div class="col">
+        <h2>Kroppsdelar</h2>
+        <div id="bodyList"></div> <!-- Dynamiskt innehåll via JS -->
+      </div>
+      <!-- Kolumn: daglig kalender -->
+      <div class="col">
+        <h2>Dagar</h2>
+        <div id="daysList"></div> <!-- Dynamiskt innehåll via JS -->
+      </div>
+      <!-- Kolumn: högerpanel med nivå & övningar -->
+      <div class="col">
+        <h2>Nivå & Övningar</h2>
+        <div id="rightList"></div> <!-- Dynamiskt innehåll via JS -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // === Verktygsfunktioner och DOM-referenser ===
+    const qs = sel => document.querySelector(sel);
+    const qsa = sel => [...document.querySelectorAll(sel)];
+    const shuffle = arr => arr.sort(() => Math.random() - 0.5);
+
+    // Elementreferenser
+    const themeToggle = qs('#themeToggle');
+    const logoutBtn   = qs('#logoutBtn');
+    const authForm    = qs('#authForm');
+    const authSection = qs('#authSection');
+    const app         = qs('#app');
+    const emailInput  = qs('#email');
+    const pwdInput    = qs('#password');
+
+    // Listor med data
+    const exercises = [ /* Övningar */
+      'Push-ups','Squats','Lunges','Plank','Burpees','Mountain Climbers',
+      'Sit-ups','Jumping Jacks','Tricep Dips','High Knees','Russian Twists',
+      'Wall Sit','Glute Bridge','Bicycle Crunch','Superman','Calf Raises',
+      'Shoulder Taps','Donkey Kicks','Leg Raises','Bear Crawl'
+    ];
+    const muscles = ['Armar','Ben','Bål','Rygg','Bröst','Axlar'];  // Kroppsdelar
+    const levels  = ['Nybörjare','Medium','Expert'];               // Svårighetsnivåer
+
+    // === Tema-switch ===
+    themeToggle.addEventListener('click', () => {
+      const next = document.body.dataset.theme === 'light' ? 'dark' : 'light';
+      document.body.dataset.theme = next;                          // Sätt nytt tema
+      themeToggle.textContent = next === 'light' ? '🌙' : '☀️';      // Ikon
+    });
+
+    // === Logga ut ===
+    logoutBtn.addEventListener('click', () => {
+      localStorage.removeItem('currentUser'); // Ta bort session
+      location.reload();                      // Ladda om sidan
+    });
+    // === Login / Registrering ===
+    authForm.addEventListener('submit', e => {
+      e.preventDefault();                    // Förhindra form-submit
+      const email = emailInput.value;
+      const pwd   = pwdInput.value;
+      let users   = JSON.parse(localStorage.getItem('users') || '{}');
+
+      // Skapa ny användare om den inte finns
+      if (!users[email]) {
+        users[email] = { password: pwd, settings: { muscles, level: levels[0], days: [] }, completed: [] };
+      }
+      // Kontrollera lösenord
+      if (users[email].password !== pwd) {
+        alert('Fel lösenord');
+        return;
+      }
+      // Spara användardata och starta app
+      localStorage.setItem('users', JSON.stringify(users));
+      localStorage.setItem('currentUser', email);
+      initApp();
+    });
+
+    // === Initiera huvudapp efter login ===
+    function initApp() {
+      authSection.style.display = 'none';
+      logoutBtn.style.display   = 'inline';
+      app.style.display         = 'grid';
+      loadData(); // Rendera innehåll
+            // Rendera nivåer
+      const rightList = qs('#rightList');
+      rightList.innerHTML = `
+        <section>
+          <label for="levelSelect"><strong>Välj nivå:</strong></label>
+          <select id="levelSelect">
+            ${levels.map(lvl => `<option value="${lvl}" ${lvl === user.settings.level ? 'selected' : ''}>${lvl}</option>`).join('')}
+          </select>
+        </section>
+      `;
+
+      // Uppdatera nivå vid ändring
+      const levelSelect = qs('#levelSelect');
+      levelSelect.addEventListener('change', () => {
+        user.settings.level = levelSelect.value;
+        const allUsers = JSON.parse(localStorage.getItem('users'));
+        allUsers[userKey] = user;
+        localStorage.setItem('users', JSON.stringify(allUsers));
+      });
+
+    }
+    // Om redan inloggad, starta direkt
+    if (localStorage.getItem('currentUser')) initApp();
+
+    // === Ladda och rendera data ===
+    function loadData() {
+      const userKey = localStorage.getItem('currentUser');
+      const user    = JSON.parse(localStorage.getItem('users'))[userKey];
+      const comp    = user.completed; // Lista med klarmarkerade dagar
+
+      // Rendera kroppsdelar
+      qsa('#bodyList .item').forEach(el => el.remove()); // Rensa gamla
+      muscles.forEach(part => {
+        const div = document.createElement('div');
+        div.className = 'item';
+        div.innerHTML = `
+          <div class="title">${part}</div>
+          <div class="panel">
+            <div class="ex-grid">
+              ${exercises.slice(0,5).map(e => `<div class="ex-card">${e}</div>`).join('')}
+            </div>
+          </div>
+        `;
+        div.addEventListener('click', () => {
+          qsa('#bodyList .item').forEach(i => i.classList.remove('open'));
+          div.classList.toggle('open'); // Öppna/stäng panel
+        });
+        qs('#bodyList').append(div);
+      });
+
+      // Rendera dagar 1–30
+      qsa('#daysList .item').forEach(el => el.remove());
+      for (let d = 1; d <= 30; d++) {
+        const div   = document.createElement('div');
+        const done  = comp.includes(d); // Kolla om dag är slutförd
+        div.className = 'item';
+        div.innerHTML = `
+          <div class="title">Dag ${d} ${done ? '✅' : ''}</div>
+          <div class="panel">
+            <div class="ex-grid">
+              ${shuffle(exercises).slice(0,8).map(e => `<div class="ex-card">${e}</div>`).join('')}
+            </div>
+            <button class="markBtn">Markera Klar</button>
+          </div>
+        `;
+        div.addEventListener('click', () => {
+          qsa('#daysList .item').forEach(i => i.classList.remove('open'));
+          div.classList.toggle('open');
+          renderRight(d); // Visa högerpanel
+        });
+        qs('#daysList').append(div);
+      }
+    }
+
+    // === Rendera högerpanel för vald dag ===
+    function renderRight(day) {
+      const userKey = localStorage.getItem('currentUser');
+      const store   = JSON.parse(localStorage.getItem('users'));
+      const user    = store[userKey];
+      const comp    = user.completed;
+
+      const R = qs('#rightList');
+      R.innerHTML = `
+        <section><h4>Nivå: ${user.settings.level}</h4></section>
+        <section>
+          <h4>Dagens Övningar</h4>
+          <div class="ex-grid">
+            ${shuffle(exercises).slice(0,8).map(e => `<div class="ex-card">${e}</div>`).join('')}
+          </div>
+        </section>
+        <button id="markBtn">${comp.includes(day) ? 'Klart!' : 'Markera Klar'}</button>
+      `;
+
+      // Hantera markering av klar dag
+      qs('#markBtn').addEventListener('click', () => {
+        if (!comp.includes(day)) {
+          comp.push(day);
+          store[userKey].completed = comp;
+          localStorage.setItem('users', JSON.stringify(store));
+        }
+        qs('#markBtn').textContent = 'Klart!';
+      });
+    }
+  </script>
+</body>
+</html>
